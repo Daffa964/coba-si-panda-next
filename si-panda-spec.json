@@ -1,0 +1,343 @@
+{
+  "systemName": "SI-PANDA",
+  "fullSystemName": "Sistem Pemantau Gizi Anak Desa Kramat",
+  "description": "A comprehensive web application designed to digitize Posyandu workflows and help prevent stunting through proactive child health monitoring.",
+  "databaseStructure": {
+    "posyandu": {
+      "tableName": "posyandu",
+      "description": "Stores information about Posyandu locations",
+      "columns": [
+        {
+          "name": "id",
+          "type": "Serial",
+          "primaryKey": true,
+          "description": "Primary key"
+        },
+        {
+          "name": "nama_posyandu",
+          "type": "String",
+          "description": "Name of the Posyandu"
+        },
+        {
+          "name": "lokasi",
+          "type": "String",
+          "description": "Location details (e.g., 'RW 01, Desa Kramat')"
+        }
+      ]
+    },
+    "users": {
+      "tableName": "users",
+      "description": "Manages Bidan and Kader accounts",
+      "columns": [
+        {
+          "name": "id",
+          "type": "Serial",
+          "primaryKey": true,
+          "description": "Primary key"
+        },
+        {
+          "name": "nama",
+          "type": "String",
+          "description": "Full name of the user"
+        },
+        {
+          "name": "email",
+          "type": "String",
+          "unique": true,
+          "description": "Unique email for login"
+        },
+        {
+          "name": "password",
+          "type": "String",
+          "description": "Hashed password"
+        },
+        {
+          "name": "role",
+          "type": "Enum",
+          "values": ["BIDAN", "KADER"],
+          "description": "Role of the user"
+        },
+        {
+          "name": "posyandu_id",
+          "type": "Serial",
+          "foreignKey": "posyandu.id",
+          "nullable": true,
+          "description": "Foreign key to posyandu (null for Bidan)"
+        },
+        {
+          "name": "created_at",
+          "type": "Timestamp",
+          "description": "Timestamp of account creation"
+        }
+      ]
+    },
+    "anak": {
+      "tableName": "anak",
+      "description": "Stores children demographic information",
+      "columns": [
+        {
+          "name": "id",
+          "type": "Serial",
+          "primaryKey": true,
+          "description": "Primary key"
+        },
+        {
+          "name": "nama_anak",
+          "type": "String",
+          "description": "Child's full name"
+        },
+        {
+          "name": "jenis_kelamin",
+          "type": "Enum",
+          "values": ["LAKI-LAKI", "PEREMPUAN"],
+          "description": "Gender"
+        },
+        {
+          "name": "tanggal_lahir",
+          "type": "Date",
+          "description": "Date of birth"
+        },
+        {
+          "name": "nama_wali",
+          "type": "String",
+          "description": "Guardian's name"
+        },
+        {
+          "name": "telepon_wali",
+          "type": "String",
+          "description": "Guardian's phone number"
+        },
+        {
+          "name": "posyandu_id",
+          "type": "Serial",
+          "foreignKey": "posyandu.id",
+          "description": "Foreign key to posyandu"
+        },
+        {
+          "name": "qr_token",
+          "type": "String",
+          "description": "Unique token for QR code generation"
+        },
+        {
+          "name": "created_at",
+          "type": "Timestamp",
+          "description": "Timestamp of registration"
+        }
+      ]
+    },
+    "pengukuran": {
+      "tableName": "pengukuran",
+      "description": "Records measurement data with Z-scores",
+      "columns": [
+        {
+          "name": "id",
+          "type": "Serial",
+          "primaryKey": true,
+          "description": "Primary key"
+        },
+        {
+          "name": "anak_id",
+          "type": "Serial",
+          "foreignKey": "anak.id",
+          "description": "Foreign key to anak"
+        },
+        {
+          "name": "tanggal_pengukuran",
+          "type": "Date",
+          "description": "Measurement date"
+        },
+        {
+          "name": "berat_badan_kg",
+          "type": "Real",
+          "description": "Weight in kg"
+        },
+        {
+          "name": "tinggi_badan_cm",
+          "type": "Real",
+          "description": "Height in cm"
+        },
+        {
+          "name": "zscore_bb_u",
+          "type": "Real",
+          "description": "Z-score Weight for Age"
+        },
+        {
+          "name": "zscore_tb_u",
+          "type": "Real",
+          "description": "Z-score Height for Age"
+        },
+        {
+          "name": "zscore_bb_tb",
+          "type": "Real",
+          "description": "Z-score Weight for Height"
+        },
+        {
+          "name": "status_gizi",
+          "type": "String",
+          "description": "Nutritional status classification"
+        },
+        {
+          "name": "dicatat_oleh",
+          "type": "Serial",
+          "foreignKey": "users.id",
+          "description": "Foreign key to users (the Kader who recorded)"
+        },
+        {
+          "name": "created_at",
+          "type": "Timestamp",
+          "description": "Timestamp of entry"
+        }
+      ]
+    }
+  },
+  "features": [
+    {
+      "id": "F01",
+      "name": "User Management & Authentication",
+      "description": "Secure login system for Bidan and Kader roles with role-based access control",
+      "components": [
+        "Secure login system for Bidan and Kader roles",
+        "Registration system for Bidan (Super Admin)",
+        "Role-based access control",
+        "Kader account management by Bidan"
+      ]
+    },
+    {
+      "id": "F02",
+      "name": "Child Data & Measurement Management",
+      "description": "Complete child registration and measurement system with automated calculations",
+      "components": [
+        "Child registration with demographic information",
+        "Measurement input (weight and height)",
+        "Automatic calculation of age in months",
+        "Automatic calculation of Z-scores (BB/U, TB/U, BB/TB)",
+        "Nutritional status classification",
+        "Measurement history tracking"
+      ]
+    },
+    {
+      "id": "F03",
+      "name": "Monitoring Dashboard with Early Warning System",
+      "description": "Visual dashboard for Bidan to monitor entire population with alerts",
+      "components": [
+        "Visual dashboard for Bidan to monitor entire population",
+        "Color-coded alerts for at-risk children (red for stunting, yellow for underweight)",
+        "Filtering capabilities by Posyandu, nutritional status, and age range",
+        "Quick access to child details and history"
+      ]
+    },
+    {
+      "id": "F04",
+      "name": "QR Code Report Generation",
+      "description": "Unique QR code generation for each child with public report access",
+      "components": [
+        "Unique QR code generation for each child",
+        "Public report page accessible without login",
+        "Growth trend display and measurement history",
+        "Read-only report for parents"
+      ]
+    },
+    {
+      "id": "F05",
+      "name": "Direct Communication via WhatsApp",
+      "description": "WhatsApp integration for direct communication with parents",
+      "components": [
+        "WhatsApp integration for direct communication",
+        "One-click contact to parents from dashboard",
+        "Accessible through the monitoring dashboard"
+      ]
+    },
+    {
+      "id": "F06",
+      "name": "Nutrition Recommendations",
+      "description": "Personalized nutrition recommendations based on nutritional status",
+      "components": [
+        "Personalized nutrition recommendations based on nutritional status",
+        "General guidelines for different nutritional conditions",
+        "Age and condition-specific dietary advice"
+      ]
+    }
+  ],
+  "technicalStack": {
+    "frontend": "Next.js 15 with App Router",
+    "styling": "Tailwind CSS with Shadcn/ui components",
+    "database": "PostgreSQL with Drizzle ORM",
+    "authentication": "Lucia Auth with PostgreSQL adapter",
+    "qrCodes": "qrcode library",
+    "formHandling": "react-hook-form with Zod validation",
+    "dateUtilities": "date-fns"
+  },
+  "userRoles": {
+    "bidan": {
+      "name": "Bidan",
+      "permissions": [
+        "Access comprehensive dashboard showing all children in assigned areas",
+        "Monitor nutritional status with color-coded alerts",
+        "Manage Kader accounts",
+        "Access direct communication to parents",
+        "View detailed reports and analytics"
+      ]
+    },
+    "kader": {
+      "name": "Kader",
+      "permissions": [
+        "Access children assigned to your Posyandu",
+        "Input measurement data using simple forms",
+        "View immediate feedback on nutritional status",
+        "Generate QR codes for parents"
+      ]
+    },
+    "parent": {
+      "name": "Parent",
+      "permissions": [
+        "Scan QR code provided by Kader",
+        "Access child's growth report without login",
+        "View measurement history and trends",
+        "Access nutrition recommendations"
+      ]
+    }
+  },
+  "securityFeatures": [
+    "Secure password hashing with bcrypt",
+    "Session-based authentication with Lucia",
+    "Role-based access control",
+    "Protected routes with middleware",
+    "Environmental variable configuration for sensitive data"
+  ],
+  "developmentSetup": [
+    "Clone the repository",
+    "Install dependencies: npm install",
+    "Set up PostgreSQL database and update .env",
+    "Run migrations: npm run db:migrate",
+    "Seed database (optional): npm run db:seed",
+    "Start development server: npm run dev"
+  ],
+  "productionDeployment": [
+    "Configure production database",
+    "Update environment variables",
+    "Run migrations: npm run db:migrate",
+    "Build the application: npm run build",
+    "Start the application: npm start"
+  ],
+  "apiIntegrationPoints": [
+    "RESTful API endpoints for data management",
+    "QR code generation for public reports",
+    "WhatsApp integration for direct communication",
+    "Export capabilities for reports",
+    "Integration-ready architecture for future enhancements"
+  ],
+  "futureEnhancements": [
+    "Mobile application for field data collection",
+    "Advanced analytics and reporting",
+    "Integration with government health systems",
+    "Push notifications for critical cases",
+    "Photo capture for growth tracking",
+    "Offline data collection capabilities"
+  ],
+  "supportAndMaintenance": [
+    "Check the documentation in the README",
+    "Review error logs in the application",
+    "Contact the development team for issues",
+    "Regular updates and patches will be provided"
+  ]
+}
