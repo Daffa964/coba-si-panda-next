@@ -1,9 +1,13 @@
 import { db } from '@/lib/db';
-import { anak, pengukuran, users } from '@/lib/db/schema';
+import { anak, pengukuran } from '@/lib/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
-import { generateQRToken, calculateAgeInMonths, 
-  calculateZScoreBbU, calculateZScoreTbU, calculateZScoreBbTb, 
-  classifyNutritionalStatus } from '@/utils';
+import { 
+  generateQRToken, 
+  calculateAgeInMonths, 
+  calculateStatusBBU,
+  calculateStatusTBU,
+  calculateStatusBBTB
+} from '@/utils';
 import { Anak, Pengukuran } from '@/types';
 
 /**
@@ -23,12 +27,15 @@ export class AnakService {
   ): Promise<Anak> {
     const qrToken = generateQRToken();
     
+    // FIX: Konversi Date ke String 'YYYY-MM-DD' untuk Drizzle
+    const tanggalLahirStr = tanggalLahir.toISOString().split('T')[0];
+
     const [newAnak] = await db
       .insert(anak)
       .values({
         namaAnak,
         jenisKelamin,
-        tanggalLahir,
+        tanggalLahir: tanggalLahirStr as any, // Cast ke any/string agar tipe Drizzle tidak error
         namaWali,
         teleponWali,
         posyanduId,
@@ -36,17 +43,28 @@ export class AnakService {
       })
       .returning();
     
-    return newAnak;
+    // Kita harus mengembalikan object yang sesuai dengan interface Anak (Date)
+    // Drizzle biasanya mengembalikan string untuk kolom date, jadi kita perlu memastikan tipenya
+    return {
+      ...newAnak,
+      tanggalLahir: new Date(newAnak.tanggalLahir)
+    } as unknown as Anak;
   }
 
   /**
    * Get all children for a specific posyandu
    */
   async getAnakByPosyandu(posyanduId: number): Promise<Anak[]> {
-    return await db
+    const results = await db
       .select()
       .from(anak)
       .where(eq(anak.posyanduId, posyanduId));
+      
+    // Konversi string date dari DB kembali ke Object Date untuk frontend
+    return results.map(a => ({
+      ...a,
+      tanggalLahir: new Date(a.tanggalLahir)
+    })) as unknown as Anak[];
   }
 
   /**
@@ -59,7 +77,12 @@ export class AnakService {
       .where(eq(anak.id, id))
       .limit(1);
     
-    return result[0] || null;
+    if (!result[0]) return null;
+
+    return {
+      ...result[0],
+      tanggalLahir: new Date(result[0].tanggalLahir)
+    } as unknown as Anak;
   }
 
   /**
@@ -69,13 +92,26 @@ export class AnakService {
     id: number,
     updates: Partial<Omit<Anak, 'id' | 'qrToken' | 'createdAt'>>
   ): Promise<Anak | null> {
+    // Persiapkan object updates yang bersih
+    const cleanUpdates: any = { ...updates };
+    
+    // FIX: Jika ada update tanggal lahir, konversi ke string
+    if (updates.tanggalLahir instanceof Date) {
+      cleanUpdates.tanggalLahir = updates.tanggalLahir.toISOString().split('T')[0];
+    }
+
     const result = await db
       .update(anak)
-      .set(updates)
+      .set(cleanUpdates)
       .where(eq(anak.id, id))
       .returning();
     
-    return result[0] || null;
+    if (!result[0]) return null;
+
+    return {
+      ...result[0],
+      tanggalLahir: new Date(result[0].tanggalLahir)
+    } as unknown as Anak;
   }
 
   /**
@@ -90,8 +126,21 @@ export class AnakService {
     return result.length > 0;
   }
 
+  async getAllAnak(): Promise<Anak[]> {
+    const results = await db
+      .select()
+      .from(anak);
+      
+    // Konversi string date dari DB kembali ke Object Date
+    return results.map(a => ({
+      ...a,
+      tanggalLahir: new Date(a.tanggalLahir)
+    })) as unknown as Anak[];
+  }
+
   /**
    * Record a new measurement for a child
+   * UPDATED: Menggunakan Standar WHO Baru & Fix Date Error
    */
   async recordPengukuran(
     anakId: number,
@@ -99,51 +148,71 @@ export class AnakService {
     tinggiBadanCm: number,
     dicatatOleh: number
   ): Promise<Pengukuran> {
-    // Get child data to calculate age
+    // 1. Ambil data anak untuk menghitung umur
     const anakData = await this.getAnakById(anakId);
     if (!anakData) {
       throw new Error('Anak tidak ditemukan');
     }
 
-    // Calculate age in months
+    // 2. Hitung umur dalam bulan
     const ageInMonths = calculateAgeInMonths(anakData.tanggalLahir);
 
-    // Calculate Z-scores
-    const zscoreBbU = calculateZScoreBbU(beratBadanKg, ageInMonths);
-    const zscoreTbU = calculateZScoreTbU(tinggiBadanCm, ageInMonths);
-    const zscoreBbTb = calculateZScoreBbTb(beratBadanKg, tinggiBadanCm);
+    // 3. Hitung Status Gizi Lengkap (BB/U, TB/U, BB/TB)
+    const statusBBU = calculateStatusBBU(ageInMonths, beratBadanKg, anakData.jenisKelamin);
+    const statusTBU = calculateStatusTBU(ageInMonths, tinggiBadanCm, anakData.jenisKelamin);
+    const statusBBTB = calculateStatusBBTB(tinggiBadanCm, beratBadanKg, anakData.jenisKelamin);
 
-    // Classify nutritional status
-    const statusGizi = classifyNutritionalStatus(zscoreBbU, zscoreTbU, zscoreBbTb);
+    // 4. Tentukan Status Utama
+    let statusGiziUtama = 'Normal';
+    if (statusTBU.color === 'danger') statusGiziUtama = statusTBU.status;
+    else if (statusBBTB.color === 'danger') statusGiziUtama = statusBBTB.status;
+    else if (statusBBU.color === 'danger') statusGiziUtama = statusBBU.status;
+    else if (statusTBU.color === 'warning') statusGiziUtama = statusTBU.status;
+    else if (statusBBTB.color === 'warning') statusGiziUtama = statusBBTB.status;
+    else if (statusBBU.color === 'warning') statusGiziUtama = statusBBU.status;
+    else if (statusBBTB.color === 'primary') statusGiziUtama = statusBBTB.status;
+    else statusGiziUtama = "Gizi Baik (Normal)";
 
-    // Insert the measurement record
+    // FIX: Generate tanggal hari ini sebagai string
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // 5. Simpan ke database
     const [newPengukuran] = await db
       .insert(pengukuran)
       .values({
         anakId,
-        tanggalPengukuran: new Date(),
+        tanggalPengukuran: todayStr as any, // FIX: Pass string, bukan Date object
         beratBadanKg,
         tinggiBadanCm,
-        zscoreBbU,
-        zscoreTbU,
-        zscoreBbTb,
-        statusGizi,
+        zscoreBbU: statusBBU.zScoreApprox,
+        zscoreTbU: statusTBU.zScoreApprox,
+        zscoreBbTb: statusBBTB.zScoreApprox,
+        statusGizi: statusGiziUtama,
         dicatatOleh,
       })
       .returning();
 
-    return newPengukuran;
+    // Kembalikan dengan konversi tanggal yang benar agar sesuai tipe TypeScript
+    return {
+      ...newPengukuran,
+      tanggalPengukuran: new Date(newPengukuran.tanggalPengukuran)
+    } as unknown as Pengukuran;
   }
 
   /**
    * Get all measurements for a specific child
    */
   async getPengukuranByAnak(anakId: number): Promise<Pengukuran[]> {
-    return await db
+    const results = await db
       .select()
       .from(pengukuran)
       .where(eq(pengukuran.anakId, anakId))
       .orderBy(desc(pengukuran.tanggalPengukuran));
+
+    return results.map(p => ({
+      ...p,
+      tanggalPengukuran: new Date(p.tanggalPengukuran)
+    })) as unknown as Pengukuran[];
   }
 
   /**
@@ -157,7 +226,12 @@ export class AnakService {
       .orderBy(desc(pengukuran.tanggalPengukuran))
       .limit(1);
     
-    return results[0] || null;
+    if (!results[0]) return null;
+
+    return {
+      ...results[0],
+      tanggalPengukuran: new Date(results[0].tanggalPengukuran)
+    } as unknown as Pengukuran;
   }
 
   /**
@@ -167,15 +241,39 @@ export class AnakService {
     startDate: Date,
     endDate: Date
   ): Promise<Pengukuran[]> {
-    return await db
+    // FIX: Konversi Date ke string 'YYYY-MM-DD' untuk filter Drizzle
+    const startStr = startDate.toISOString().split('T')[0];
+    const endStr = endDate.toISOString().split('T')[0];
+
+    const results = await db
       .select()
       .from(pengukuran)
       .where(
         and(
-          gte(pengukuran.tanggalPengukuran, startDate),
-          lte(pengukuran.tanggalPengukuran, endDate)
+          gte(pengukuran.tanggalPengukuran, startStr), // FIX: Gunakan string
+          lte(pengukuran.tanggalPengukuran, endStr)    // FIX: Gunakan string
         )
       )
       .orderBy(desc(pengukuran.tanggalPengukuran));
+
+    return results.map(p => ({
+      ...p,
+      tanggalPengukuran: new Date(p.tanggalPengukuran)
+    })) as unknown as Pengukuran[];
+  }
+
+  async getAnakByToken(token: string): Promise<Anak | null> {
+    const result = await db
+      .select()
+      .from(anak)
+      .where(eq(anak.qrToken, token))
+      .limit(1);
+    
+    if (!result[0]) return null;
+
+    return {
+      ...result[0],
+      tanggalLahir: new Date(result[0].tanggalLahir)
+    } as unknown as Anak;
   }
 }

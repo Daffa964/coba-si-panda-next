@@ -1,7 +1,7 @@
-// app/api/anak/route.ts
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { AnakService } from '@/services/anakService';
+import { Anak } from '@/types'; // Import tipe Anak agar TypeScript mengenali tipe datanya
 
 const anakService = new AnakService();
 
@@ -110,13 +110,13 @@ export async function GET(req: NextRequest) {
     // Get user information from session
     const user = session.user;
     
-    let anakList;
+    // PERBAIKAN DI SINI: Definisikan tipe array secara eksplisit
+    let anakList: Anak[] = [];
     
-    // Bidan can see all anak in their posyandus, Kader can see anak in their posyandu
+    // Bidan can see all anak, Kader can see anak in their posyandu
     if (user.role === 'BIDAN') {
-      // In a real implementation, Bidan might have access to multiple posyandus
-      // For now, we'll get all anak (this would need to be adjusted based on actual requirements)
-      anakList = []; // Placeholder - would implement actual logic based on bidan's permissions
+      // Panggil method baru getAllAnak() untuk Bidan
+      anakList = await anakService.getAllAnak();
     } else if (user.role === 'KADER' && user.posyanduId) {
       anakList = await anakService.getAnakByPosyandu(user.posyanduId);
     } else {

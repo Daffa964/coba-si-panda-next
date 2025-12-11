@@ -6,13 +6,20 @@ export async function middleware(request: NextRequest) {
   const sessionId = request.cookies.get(auth.sessionCookieName)?.value;
 
   // Public routes that don't require authentication
-  const publicPaths = ['/', '/login'];
+  const publicPaths = ['/', '/login', '/qr'];
   const isPublicPath = publicPaths.some(path => 
     request.nextUrl.pathname.startsWith(path)
   );
 
+  if (isPublicPath && sessionId) {
+    // Khusus untuk login dan home, redirect ke dashboard jika sudah login
+    // Tapi biarkan user yang sudah login tetap bisa akses halaman QR
+    if (request.nextUrl.pathname === '/' || request.nextUrl.pathname === '/login') {
+       return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+  }
+
   if (!isPublicPath && !sessionId) {
-    // Redirect to login if not authenticated and trying to access protected route
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
