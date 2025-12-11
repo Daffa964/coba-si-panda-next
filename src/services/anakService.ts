@@ -276,4 +276,13 @@ export class AnakService {
       tanggalLahir: new Date(result[0].tanggalLahir)
     } as unknown as Anak;
   }
+
+  async deletePengukuran(id: number): Promise<boolean> {
+    const result = await db
+      .delete(pengukuran)
+      .where(eq(pengukuran.id, id))
+      .returning();
+
+    return result.length > 0;
+  }
 }
