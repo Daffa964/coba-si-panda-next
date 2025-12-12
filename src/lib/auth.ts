@@ -1,24 +1,38 @@
-import { lucia } from 'lucia';
-import { pg } from '@lucia-auth/adapter-postgresql';
-import { db } from '@/lib/db';
-import { sessions, users } from '@/lib/db/schema';
+import { Lucia } from "lucia";
+import { DrizzlePostgreSQLAdapter } from "@lucia-auth/adapter-drizzle"; // Pastikan import ini benar
+import { db } from "@/lib/db";
+import { sessions, users } from "@/lib/db/schema";
 
-// Initialize Lucia with PostgreSQL adapter
-export const auth = lucia({
-  adapter: pg(db, {
-    user: users,
-    session: sessions,
-  }),
-  env: process.env.NODE_ENV === 'production' ? 'PROD' : 'DEV',
-  getUserAttributes: (userData) => {
-    return {
-      nama: userData.nama,
-      email: userData.email,
-      role: userData.role,
-      posyanduId: userData.posyanduId,
-    };
-  },
+// PENTING: Tambahkan 'as any' untuk melewati error ketidakcocokan versi tipe data Drizzle
+const adapter = new DrizzlePostgreSQLAdapter(db, sessions as any, users as any);
+
+export const auth = new Lucia(adapter, {
+	sessionCookie: {
+		expires: false,
+		attributes: {
+			secure: process.env.NODE_ENV === "production"
+		}
+	},
+	getUserAttributes: (attributes) => {
+		return {
+			nama: attributes.nama,
+			email: attributes.email,
+			role: attributes.role,
+			posyanduId: attributes.posyanduId
+		};
+	}
 });
 
-// Define the type for user attributes
-export type Auth = typeof auth;
+declare module "lucia" {
+	interface Register {
+		Lucia: typeof auth;
+		DatabaseUserAttributes: DatabaseUserAttributes;
+	}
+}
+
+interface DatabaseUserAttributes {
+	nama: string;
+	email: string;
+	role: 'BIDAN' | 'KADER';
+	posyanduId: number | null;
+}

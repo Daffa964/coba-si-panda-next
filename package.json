@@ -9,18 +9,18 @@
     "start": "next start",
     "lint": "next lint",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node -r dotenv/config ./scripts/migrate.js",
-    "db:seed": "node -r dotenv/config ./scripts/seed.js"
+    "db:migrate": "tsx ./scripts/migrate.ts",
+    "db:seed": "tsx ./scripts/seed.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
-    "@lucia-auth/adapter-postgresql": "^3.0.0",
+    "@lucia-auth/adapter-drizzle": "^1.1.0",
     "bcrypt": "^5.1.1",
     "clsx": "^2.1.0",
     "date-fns": "^3.6.0",
     "drizzle-kit": "^0.24.0",
     "drizzle-orm": "^0.33.0",
-    "lucia": "^3.0.0",
+    "lucia": "^3.2.2",
     "next": "^15.0.0",
     "pg": "^8.11.3",
     "postgresql": "^0.0.1",
@@ -36,12 +36,14 @@
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^20.0.0",
+    "@types/pg": "^8.16.0",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "dotenv": "^16.4.5",
     "eslint": "^8.0.0",
     "eslint-config-next": "^15.0.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.0.0"
   }
 }

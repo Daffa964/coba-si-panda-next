@@ -1,80 +1,114 @@
-import { pgTable, serial, text, integer, timestamp, real, date, boolean } from 'drizzle-orm/pg-core';
+import { 
+  pgTable, serial, text, integer, timestamp, real, date 
+} from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-// Define the posyandu table
+// ---------------------
+// POSYANDU
+// ---------------------
 export const posyandu = pgTable('posyandu', {
   id: serial('id').primaryKey(),
   namaPosyandu: text('nama_posyandu').notNull(),
-  lokasi: text('lokasi').notNull(), // e.g., "RW 01, Desa Kramat"
+  lokasi: text('lokasi').notNull()
 });
 
-// Define the users table
+// ---------------------
+// USERS (Lucia user table)
+// ---------------------
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   nama: text('nama').notNull(),
   email: text('email').notNull().unique(),
   password: text('password').notNull(),
-  role: text('role').notNull().$type<'BIDAN' | 'KADER'>(), // Enum-like using TypeScript
-  posyanduId: integer('posyandu_id').references(() => posyandu.id, { onDelete: 'set null' }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  role: text('role').notNull().$type<'BIDAN' | 'KADER'>(),
+  posyanduId: integer('posyandu_id')
+    .references(() => posyandu.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
-// Define the anak table
+// ---------------------
+// SESSIONS (HARUS SETELAH USERS)
+// ---------------------
+export const sessions = pgTable('sessions', {
+  id: text('id').primaryKey(), // session ID by Lucia
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp('expires_at').notNull()
+});
+
+// ---------------------
+// ANAK
+// ---------------------
 export const anak = pgTable('anak', {
   id: serial('id').primaryKey(),
   namaAnak: text('nama_anak').notNull(),
-  jenisKelamin: text('jenis_kelamin').notNull().$type<'LAKI-LAKI' | 'PEREMPUAN'>(),
+  jenisKelamin: text('jenis_kelamin')
+    .notNull()
+    .$type<'LAKI-LAKI' | 'PEREMPUAN'>(),
   tanggalLahir: date('tanggal_lahir').notNull(),
   namaWali: text('nama_wali').notNull(),
   teleponWali: text('telepon_wali'),
-  posyanduId: integer('posyandu_id').notNull().references(() => posyandu.id),
-  qrToken: text('qr_token').notNull().unique(), // For QR code generation
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  posyanduId: integer('posyandu_id')
+    .notNull()
+    .references(() => posyandu.id),
+  qrToken: text('qr_token').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
-// Define the pengukuran table
+// ---------------------
+// PENGUKURAN
+// ---------------------
 export const pengukuran = pgTable('pengukuran', {
   id: serial('id').primaryKey(),
   anakId: integer('anak_id').notNull().references(() => anak.id),
   tanggalPengukuran: date('tanggal_pengukuran').notNull(),
   beratBadanKg: real('berat_badan_kg').notNull(),
   tinggiBadanCm: real('tinggi_badan_cm').notNull(),
-  zscoreBbU: real('zscore_bb_u'), // Z-score Weight for Age
-  zscoreTbU: real('zscore_tb_u'), // Z-score Height for Age
-  zscoreBbTb: real('zscore_bb_tb'), // Z-score Weight for Height
-  statusGizi: text('status_gizi').notNull(), // Nutritional status classification
-  dicatatOleh: integer('dicatat_oleh').notNull().references(() => users.id), // FK to users (the Kader who recorded)
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  zscoreBbU: real('zscore_bb_u'),
+  zscoreTbU: real('zscore_tb_u'),
+  zscoreBbTb: real('zscore_bb_tb'),
+  statusGizi: text('status_gizi').notNull(),
+  dicatatOleh: integer('dicatat_oleh')
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
-// Define relations between tables
+// ---------------------
+// RELATIONS
+// ---------------------
 export const posyanduRelations = relations(posyandu, ({ many }) => ({
   users: many(users),
-  anak: many(anak),
+  anak: many(anak)
 }));
 
 export const usersRelations = relations(users, ({ one }) => ({
   posyandu: one(posyandu, {
     fields: [users.posyanduId],
-    references: [posyandu.id],
-  }),
+    references: [posyandu.id]
+  })
 }));
 
 export const anakRelations = relations(anak, ({ one, many }) => ({
   posyandu: one(posyandu, {
     fields: [anak.posyanduId],
-    references: [posyandu.id],
+    references: [posyandu.id]
   }),
-  pengukuran: many(pengukuran),
+  pengukuran: many(pengukuran)
 }));
 
 export const pengukuranRelations = relations(pengukuran, ({ one }) => ({
   anak: one(anak, {
     fields: [pengukuran.anakId],
-    references: [anak.id],
+    references: [anak.id]
   }),
   pencatat: one(users, {
     fields: [pengukuran.dicatatOleh],
-    references: [users.id],
-  }),
+    references: [users.id]
+  })
 }));
+
+export type User = typeof users.$inferSelect;
+export type Session = typeof sessions.$inferSelect;
+

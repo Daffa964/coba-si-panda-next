@@ -1,0 +1,352 @@
+{
+  "id": "a98372d7-8002-4d3c-8762-b8bdf635dba7",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.anak": {
+      "name": "anak",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nama_anak": {
+          "name": "nama_anak",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jenis_kelamin": {
+          "name": "jenis_kelamin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tanggal_lahir": {
+          "name": "tanggal_lahir",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nama_wali": {
+          "name": "nama_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telepon_wali": {
+          "name": "telepon_wali",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "posyandu_id": {
+          "name": "posyandu_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "qr_token": {
+          "name": "qr_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "anak_posyandu_id_posyandu_id_fk": {
+          "name": "anak_posyandu_id_posyandu_id_fk",
+          "tableFrom": "anak",
+          "tableTo": "posyandu",
+          "columnsFrom": [
+            "posyandu_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "anak_qr_token_unique": {
+          "name": "anak_qr_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "qr_token"
+          ]
+        }
+      }
+    },
+    "public.pengukuran": {
+      "name": "pengukuran",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "anak_id": {
+          "name": "anak_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tanggal_pengukuran": {
+          "name": "tanggal_pengukuran",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "berat_badan_kg": {
+          "name": "berat_badan_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tinggi_badan_cm": {
+          "name": "tinggi_badan_cm",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "zscore_bb_u": {
+          "name": "zscore_bb_u",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zscore_tb_u": {
+          "name": "zscore_tb_u",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zscore_bb_tb": {
+          "name": "zscore_bb_tb",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_gizi": {
+          "name": "status_gizi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dicatat_oleh": {
+          "name": "dicatat_oleh",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "pengukuran_anak_id_anak_id_fk": {
+          "name": "pengukuran_anak_id_anak_id_fk",
+          "tableFrom": "pengukuran",
+          "tableTo": "anak",
+          "columnsFrom": [
+            "anak_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "pengukuran_dicatat_oleh_users_id_fk": {
+          "name": "pengukuran_dicatat_oleh_users_id_fk",
+          "tableFrom": "pengukuran",
+          "tableTo": "users",
+          "columnsFrom": [
+            "dicatat_oleh"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.posyandu": {
+      "name": "posyandu",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nama_posyandu": {
+          "name": "nama_posyandu",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lokasi": {
+          "name": "lokasi",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.sessions": {
+      "name": "sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sessions_user_id_users_id_fk": {
+          "name": "sessions_user_id_users_id_fk",
+          "tableFrom": "sessions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nama": {
+          "name": "nama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "posyandu_id": {
+          "name": "posyandu_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "users_posyandu_id_posyandu_id_fk": {
+          "name": "users_posyandu_id_posyandu_id_fk",
+          "tableFrom": "users",
+          "tableTo": "posyandu",
+          "columnsFrom": [
+            "posyandu_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      }
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
